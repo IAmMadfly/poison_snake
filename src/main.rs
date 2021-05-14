@@ -1,6 +1,5 @@
 use bevy::{
-    prelude::*,
-    ecs::system::QuerySet
+    prelude::*
 };
 
 
@@ -12,7 +11,8 @@ trait Location {
 
 #[derive(Default)]
 struct Snake {
-    body: Vec<Entity>
+    body:       Vec<Entity>,
+    last_move:  f32
 }
 
 fn main() {
@@ -48,11 +48,19 @@ fn load_snake(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
             ..Default::default()
         })
+        .id(),
+        commands.spawn_bundle(SpriteBundle {
+            material:   materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into()),
+            transform:  Transform::from_xyz(20.0, 0.0, 0.0),
+            sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
+            ..Default::default()
+        })
         .id()
     ];
 
     let snek = Snake {
-        body
+        body,
+        last_move: 0.0
     };
 
     commands.spawn()
@@ -63,21 +71,44 @@ fn load_snake(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
 
 fn snek_movement_system(
     _key_input:         Res<Input<KeyCode>>,
-    // mut query_set:      QuerySet<(
-    //     Query<&mut Snake>,
-    //     Query<&mut Transform>
-    // )>,
-    mut snake_query:    Query<& Snake>,
+    time:               Res<Time>,
+    mut snake_query:    Query<&mut Snake>,
     mut body_query:     Query<&mut Transform>
 ) {
-    if let Ok(snake) = snake_query.single_mut() {
+    if let Ok(mut snake) = snake_query.single_mut() {
         // transform.translation.x += 1.0;
 
-        let snake_head = snake.body.first();
+        snake.last_move += time.delta_seconds();
+        
+        if snake.last_move >= 1.0 {
+            snake.last_move = 0.0;
 
-        if let Some(head) = snake_head {
-            if let Ok(mut tail_trans) = body_query.get_mut(*head) {
-                tail_trans.translation.x += 0.9;
+            let snake_head = snake.body.first().unwrap().clone();
+            let snake_tail = snake.body.last().unwrap().clone();
+
+            if snake_head != snake_tail {
+                let head_trans = body_query
+                    .get_mut(snake_head)
+                    .expect("Failed to get head transform")
+                    .clone();
+                
+                let mut tail_trans = body_query
+                    .get_mut(snake_tail)
+                    .expect("Failed to get tail transform");
+
+                tail_trans.translation.x = head_trans.translation.x;
+                tail_trans.translation.y = head_trans.translation.y;
+
+                let new_pos = snake.body.pop().unwrap().clone();
+
+                snake.body.insert(
+                    1, 
+                    new_pos
+                );
+            }
+
+            if let Ok(mut tail_trans) = body_query.get_mut(snake_head) {
+                tail_trans.translation.x += 10.0;
             }
         }
     }
