@@ -2,6 +2,7 @@ use bevy::{
     prelude::*
 };
 
+use rand::prelude::*;
 
 trait Location {
     fn x(&self) -> f64;
@@ -9,11 +10,20 @@ trait Location {
     fn y(&self) -> f64;
 }
 
+enum MoveDirection {
+    Left,
+    Right,
+    Up,
+    Down
+}
+
 #[derive(Default)]
 struct Snake {
     body:       Vec<Entity>,
     last_move:  f32
 }
+
+struct Mouse {}
 
 fn main() {
     let mut app = App::build();
@@ -24,6 +34,8 @@ fn main() {
         .add_startup_system(load_snake.system());
     
     app.add_system(snek_movement_system.system());
+    app.add_system(game_input_listening_system.system());
+    app.add_system(mouse_generating_system.system());
 
     app.run();
 }
@@ -51,6 +63,13 @@ fn load_snake(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .id(),
         commands.spawn_bundle(SpriteBundle {
             material:   materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into()),
+            transform:  Transform::from_xyz(30.0, 0.0, 0.0),
+            sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
+            ..Default::default()
+        })
+        .id(),
+        commands.spawn_bundle(SpriteBundle {
+            material:   materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into()),
             transform:  Transform::from_xyz(20.0, 0.0, 0.0),
             sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
             ..Default::default()
@@ -64,23 +83,66 @@ fn load_snake(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
     };
 
     commands.spawn()
-        .insert(snek);
+        .insert(snek)
+        .insert(MoveDirection::Right);
+}
 
+fn mouse_generating_system(
+    mut commands:           Commands,
+    mut materials:          ResMut<Assets<ColorMaterial>>
+    // mice_query:             Query<&Mouse>
+) {
+    let mut rnd_gen = thread_rng();
+
+    if rnd_gen.gen_bool(0.005) {
+        commands.spawn_bundle(SpriteBundle {
+            material:       materials.add(Color::rgb(0.7, 0.7, 0.7).into()),
+            transform:      Transform::from_xyz(
+                rnd_gen.gen_range(-5.0f32..5.0f32).round()*10.0,
+                rnd_gen.gen_range(-5.0f32..5.0f32).round()*10.0,
+                0.0
+            ),
+            sprite:         Sprite::new(Vec2::new(8.0, 8.0)),
+            ..Default::default()
+        })
+        .insert(Mouse{});
+    }
+}
+
+fn snake_collision_system(
     
+) {
+
+}
+
+fn game_input_listening_system(
+    keycode:                Res<Input<KeyCode>>,
+    mut direction_query:    Query<&mut MoveDirection>
+) {
+    if let Ok(mut direction) = direction_query.single_mut() {
+        if keycode.pressed(KeyCode::Left) {
+            *direction = MoveDirection::Left;
+        } else if keycode.pressed(KeyCode::Right) {
+            *direction = MoveDirection::Right;
+        } else if keycode.pressed(KeyCode::Up) {
+            *direction = MoveDirection::Up;
+        } else if keycode.pressed(KeyCode::Down) {
+            *direction = MoveDirection::Down;
+        }
+    }
 }
 
 fn snek_movement_system(
-    _key_input:         Res<Input<KeyCode>>,
     time:               Res<Time>,
-    mut snake_query:    Query<&mut Snake>,
+    mut snake_query:    Query<(&mut Snake, &MoveDirection)>,
     mut body_query:     Query<&mut Transform>
 ) {
-    if let Ok(mut snake) = snake_query.single_mut() {
+    if let Ok((mut snake, direction)) = snake_query.single_mut() {
         // transform.translation.x += 1.0;
 
         snake.last_move += time.delta_seconds();
         
-        if snake.last_move >= 1.0 {
+        if snake.last_move >= 0.2 {
             snake.last_move = 0.0;
 
             let snake_head = snake.body.first().unwrap().clone();
@@ -108,7 +170,20 @@ fn snek_movement_system(
             }
 
             if let Ok(mut tail_trans) = body_query.get_mut(snake_head) {
-                tail_trans.translation.x += 10.0;
+                match direction {
+                    MoveDirection::Left => {
+                        tail_trans.translation.x -= 10.0;
+                    },
+                    MoveDirection::Right => {
+                        tail_trans.translation.x += 10.0;
+                    },
+                    MoveDirection::Up => {
+                        tail_trans.translation.y += 10.0;
+                    },
+                    MoveDirection::Down => {
+                        tail_trans.translation.y -= 10.0;
+                    },
+                }
             }
         }
     }
