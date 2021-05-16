@@ -23,6 +23,7 @@ struct Snake {
     last_move:  f32
 }
 
+#[derive(Default)]
 struct Mouse {}
 
 fn main() {
@@ -36,6 +37,7 @@ fn main() {
     app.add_system(snek_movement_system.system());
     app.add_system(game_input_listening_system.system());
     app.add_system(mouse_generating_system.system());
+    app.add_system(snake_collision_system.system());
 
     app.run();
 }
@@ -110,9 +112,25 @@ fn mouse_generating_system(
 }
 
 fn snake_collision_system(
-    
+    mut snake_query:        Query<&mut Snake>,
+    trans_query:            Query<&Transform>,
+    mouse_query:            Query<(&Mouse, &Transform)>,
+    mut commands:           Commands
 ) {
+    if let Ok(mut snake) = snake_query.single_mut() {
+        let snake_head = snake.body.first().unwrap();
 
+        let snake_head_trans = trans_query
+            .get(*snake_head)
+            .expect("Failed to get snake head transform");
+
+        for (_mouse, trans) in mouse_query.iter() {
+            if trans.translation.x == snake_head_trans.translation.x && 
+            trans.translation.y == snake_head_trans.translation.y {
+                commands.despawn();
+            }
+        }
+    }
 }
 
 fn game_input_listening_system(
