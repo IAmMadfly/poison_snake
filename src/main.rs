@@ -59,7 +59,7 @@ fn load_snake(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
 
     let body = vec![
         commands.spawn_bundle(SpriteBundle {
-            material:   head_colour,
+            material:   head_colour.clone(),
             transform:  Transform::from_xyz(10.0, 0.0, 0.0),
             sprite:     Sprite::new(Vec2::new(10.0, 10.0)),
             ..Default::default()
@@ -67,7 +67,7 @@ fn load_snake(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(Body{})
         .id(),
         commands.spawn_bundle(SpriteBundle {
-            material:   body_colour,
+            material:   body_colour.clone(),
             transform:  Transform::from_xyz(0.0, 10.0, 0.0),
             sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
             ..Default::default()
@@ -136,39 +136,56 @@ fn snake_collision_system(
                 snake_head_trans.translation.y == trans.translation.y {
                     snake.dead = true;
 
-                    materials
-                        .get_handle(
+                    let head_colour = materials
+                        .get_mut(
                             snake.head_colour.clone()
-                        );
+                        ).expect("Failed to get head colour!");
+                    
+                    head_colour.color = Color::RED;
+
+                    let body_colour = materials
+                        .get_mut(
+                            snake.body_colour.clone()
+                        ).expect("Failed to get head colour!");
+                    
+                    body_colour.color = Color::rgba(0.6, 0.4, 0.4, 1.0);
                     return;
                 }
             }
         }
 
-        for (ent, _mouse, trans) in mouse_query.iter() {
-            if trans.translation.x == snake_head_trans.translation.x && 
-            trans.translation.y == snake_head_trans.translation.y {
-                commands.entity(ent).despawn();
+        let tail_pos_result = trans_query
+            .get(
+                *snake.body.last().unwrap()
+            );
+        
+        if let Ok(tail_pos) = tail_pos_result {
+            for (ent, _mouse, trans) in mouse_query.iter() {
+                if trans.translation.x == snake_head_trans.translation.x && 
+                trans.translation.y == snake_head_trans.translation.y {
+                    
+                    commands.entity(ent).despawn();
+                    
+                    let body_colour_handle = snake.body_colour.clone();
+                    snake.body.push(
+                        commands.spawn_bundle(SpriteBundle {
+                            material:   body_colour_handle,
+                            transform:  tail_pos.clone(),
+                            sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
+                            ..Default::default()
+                        })
+                        .insert(Body{})
+                        .id()
+                    );
 
-                let tail_pos = trans_query
-                    .get(
-                        *snake.body.last().unwrap()
-                    )
-                    .unwrap()
-                    .clone();
-
-                snake.body.push(
-                    commands.spawn_bundle(SpriteBundle {
-                        material:   materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into()),
-                        transform:  tail_pos,
-                        sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
-                        ..Default::default()
-                    })
-                    .insert(Body{})
-                    .id()
-                );
-            }
+                    break;
+                }
+            }   
+        } else {
+            println!("Failed to get tail position!");
         }
+
+        
     }
 }
 
