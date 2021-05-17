@@ -19,9 +19,15 @@ enum MoveDirection {
 
 #[derive(Default)]
 struct Snake {
-    body:       Vec<Entity>,
-    last_move:  f32
+    body:           Vec<Entity>,
+    head_colour:    Handle<ColorMaterial>,
+    body_colour:    Handle<ColorMaterial>,
+    last_move:      f32,
+    dead:           bool
 }
+
+#[derive(Default)]
+struct Body {}
 
 #[derive(Default)]
 struct Mouse {}
@@ -48,40 +54,34 @@ fn load_cameras(mut commands: Commands) {
 
 fn load_snake(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     
+    let head_colour = materials.add(Color::rgba(0.45, 0.75, 0.45, 1.0).into());
+    let body_colour = materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into());
+
     let body = vec![
         commands.spawn_bundle(SpriteBundle {
-            material:   materials.add(Color::rgba(0.45, 0.75, 0.45, 1.0).into()),
+            material:   head_colour,
             transform:  Transform::from_xyz(10.0, 0.0, 0.0),
             sprite:     Sprite::new(Vec2::new(10.0, 10.0)),
             ..Default::default()
         })
+        .insert(Body{})
         .id(),
         commands.spawn_bundle(SpriteBundle {
-            material:   materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into()),
-            transform:  Transform::from_xyz(10.0, 0.0, 0.0),
+            material:   body_colour,
+            transform:  Transform::from_xyz(0.0, 10.0, 0.0),
             sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
             ..Default::default()
         })
-        .id(),
-        commands.spawn_bundle(SpriteBundle {
-            material:   materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into()),
-            transform:  Transform::from_xyz(30.0, 0.0, 0.0),
-            sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
-            ..Default::default()
-        })
-        .id(),
-        commands.spawn_bundle(SpriteBundle {
-            material:   materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into()),
-            transform:  Transform::from_xyz(20.0, 0.0, 0.0),
-            sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
-            ..Default::default()
-        })
+        .insert(Body{})
         .id()
     ];
 
     let snek = Snake {
         body,
-        last_move: 0.0
+        last_move:      0.0,
+        dead:           false,
+        head_colour,
+        body_colour
     };
 
     commands.spawn()
@@ -114,20 +114,59 @@ fn mouse_generating_system(
 fn snake_collision_system(
     mut snake_query:        Query<&mut Snake>,
     trans_query:            Query<&Transform>,
-    mouse_query:            Query<(&Mouse, &Transform)>,
-    mut commands:           Commands
+    mouse_query:            Query<(Entity, &Mouse, &Transform)>,
+    mut commands:           Commands,
+    mut materials:          ResMut<Assets<ColorMaterial>>
 ) {
     if let Ok(mut snake) = snake_query.single_mut() {
+
+        if snake.dead {
+            return;
+        }
+
         let snake_head = snake.body.first().unwrap();
 
         let snake_head_trans = trans_query
             .get(*snake_head)
             .expect("Failed to get snake head transform");
 
-        for (_mouse, trans) in mouse_query.iter() {
+        for body_element in &snake.body[1..] {
+            if let Ok(trans) = trans_query.get(*body_element) {
+                if snake_head_trans.translation.x == trans.translation.x && 
+                snake_head_trans.translation.y == trans.translation.y {
+                    snake.dead = true;
+
+                    materials
+                        .get_handle(
+                            snake.head_colour.clone()
+                        );
+                    return;
+                }
+            }
+        }
+
+        for (ent, _mouse, trans) in mouse_query.iter() {
             if trans.translation.x == snake_head_trans.translation.x && 
             trans.translation.y == snake_head_trans.translation.y {
-                commands.despawn();
+                commands.entity(ent).despawn();
+
+                let tail_pos = trans_query
+                    .get(
+                        *snake.body.last().unwrap()
+                    )
+                    .unwrap()
+                    .clone();
+
+                snake.body.push(
+                    commands.spawn_bundle(SpriteBundle {
+                        material:   materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into()),
+                        transform:  tail_pos,
+                        sprite:     Sprite::new(Vec2::new(8.0, 8.0)),
+                        ..Default::default()
+                    })
+                    .insert(Body{})
+                    .id()
+                );
             }
         }
     }
@@ -158,9 +197,13 @@ fn snek_movement_system(
     if let Ok((mut snake, direction)) = snake_query.single_mut() {
         // transform.translation.x += 1.0;
 
+        if snake.dead {
+            return;
+        }
+
         snake.last_move += time.delta_seconds();
         
-        if snake.last_move >= 0.2 {
+        if snake.last_move >= 0.05 {
             snake.last_move = 0.0;
 
             let snake_head = snake.body.first().unwrap().clone();
