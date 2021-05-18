@@ -1,11 +1,9 @@
-use bevy::{
-    prelude::*
-};
+use bevy::prelude::*;
 
 use rand::prelude::*;
 
-const WINDOW_WIDTH: f32 =   400.0;
-const WINDOW_HEIGHT: f32 =  400.0;
+const WINDOW_WIDTH: f32 = 400.0;
+const WINDOW_HEIGHT: f32 = 400.0;
 
 enum MoveDirection {
     Left,
@@ -15,7 +13,7 @@ enum MoveDirection {
 }
 
 struct Materials {
-    mouse_material:     Handle<ColorMaterial>
+    mouse_material: Handle<ColorMaterial>,
 }
 
 #[derive(Default)]
@@ -28,7 +26,7 @@ struct Snake {
 
 enum LivingState {
     Dead,
-    Alive
+    Alive,
 }
 
 #[derive(Default)]
@@ -74,42 +72,45 @@ fn set_window_parameters(mut windows: ResMut<Windows>) {
 
 fn make_walls(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     let wall_material = materials.add(Color::GRAY.into());
-    
-    commands.spawn_bundle(SpriteBundle {
-            material:       wall_material.clone(),
-            transform:      Transform::from_xyz(WINDOW_WIDTH / 2.0, 0.0, 0.0),
-            sprite:         Sprite::new(Vec2::new(10.0, WINDOW_HEIGHT)),
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: wall_material.clone(),
+            transform: Transform::from_xyz(WINDOW_WIDTH / 2.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(10.0, WINDOW_HEIGHT)),
             ..Default::default()
-        }).insert(Wall::default());
-    commands.spawn_bundle(SpriteBundle {
-            material:       wall_material.clone(),
-            transform:      Transform::from_xyz(-WINDOW_WIDTH / 2.0, 0.0, 0.0),
-            sprite:         Sprite::new(Vec2::new(10.0, WINDOW_HEIGHT)),
+        })
+        .insert(Wall::default());
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: wall_material.clone(),
+            transform: Transform::from_xyz(-WINDOW_WIDTH / 2.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(10.0, WINDOW_HEIGHT)),
             ..Default::default()
-        }).insert(Wall::default());
-    commands.spawn_bundle(SpriteBundle {
-            material:       wall_material.clone(),
-            transform:      Transform::from_xyz(0.0, WINDOW_HEIGHT / 2.0, 0.0),
-            sprite:         Sprite::new(Vec2::new(WINDOW_WIDTH, 10.0)),
+        })
+        .insert(Wall::default());
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: wall_material.clone(),
+            transform: Transform::from_xyz(0.0, WINDOW_HEIGHT / 2.0, 0.0),
+            sprite: Sprite::new(Vec2::new(WINDOW_WIDTH, 10.0)),
             ..Default::default()
-        }).insert(Wall::default());
-    commands.spawn_bundle(SpriteBundle {
-            material:       wall_material.clone(),
-            transform:      Transform::from_xyz(0.0, -WINDOW_HEIGHT / 2.0, 0.0),
-            sprite:         Sprite::new(Vec2::new(WINDOW_WIDTH, 10.0)),
+        })
+        .insert(Wall::default());
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: wall_material.clone(),
+            transform: Transform::from_xyz(0.0, -WINDOW_HEIGHT / 2.0, 0.0),
+            sprite: Sprite::new(Vec2::new(WINDOW_WIDTH, 10.0)),
             ..Default::default()
-        }).insert(Wall::default());
+        })
+        .insert(Wall::default());
 }
 
-fn make_mouse_resources(
-    mut commands:   Commands,
-    mut materials:  ResMut<Assets<ColorMaterial>>
-) {
-    commands.insert_resource(
-        Materials {
-            mouse_material:     materials.add(Color::BEIGE.into())
-        }
-    );
+fn make_mouse_resources(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
+    commands.insert_resource(Materials {
+        mouse_material: materials.add(Color::BEIGE.into()),
+    });
 }
 
 fn load_cameras(mut commands: Commands) {
@@ -120,18 +121,23 @@ fn load_cameras(mut commands: Commands) {
 // <div>Icons made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
 
 fn load_snake(
-    mut commands: Commands, 
-    mut materials: ResMut<Assets<ColorMaterial>>, 
-    mut meshs:  ResMut<Assets<Mesh>>
+    mut commands: Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut meshs: ResMut<Assets<Mesh>>,
 ) {
     let head_colour = materials.add(Color::rgba(0.45, 0.75, 0.45, 1.0).into());
     let body_colour = materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into());
 
     commands.spawn_bundle(SpriteBundle {
-        material:   materials.add(Color::RED.into()),
-        transform:  Transform::from_xyz(0.0, 0.0, 0.0),
-        sprite:     Sprite::new(Vec2::new(20.0, 20.0)),
-        mesh:       meshs.add(Mesh::new(shape::Torus{radius: 30.0, ring_radius: 10.0, subdivisions_segments: 3, subdivisions_sides: 2})),
+        material: materials.add(Color::RED.into()),
+        transform: Transform::from_xyz(0.0, 0.0, 0.0),
+        sprite: Sprite::new(Vec2::new(20.0, 20.0)),
+        mesh: meshs.add(Mesh::new(shape::Torus {
+            radius: 30.0,
+            ring_radius: 10.0,
+            subdivisions_segments: 3,
+            subdivisions_sides: 2,
+        })),
         ..Default::default()
     });
 
@@ -163,16 +169,14 @@ fn load_snake(
         body_colour,
     };
 
-    commands.spawn()
+    commands
+        .spawn()
         .insert(snek)
         .insert(LivingState::Alive)
         .insert(MoveDirection::Right);
 }
 
-fn mouse_generating_system(
-    mut commands:   Commands,
-    materials:      Res<Materials>,
-) {
+fn mouse_generating_system(mut commands: Commands, materials: Res<Materials>) {
     let mut rnd_gen = thread_rng();
 
     if rnd_gen.gen_bool(0.005) {
@@ -180,8 +184,14 @@ fn mouse_generating_system(
             .spawn_bundle(SpriteBundle {
                 material: materials.mouse_material.clone(),
                 transform: Transform::from_xyz(
-                    rnd_gen.gen_range(-WINDOW_WIDTH/(2.0*10.0)..WINDOW_WIDTH/(2.0*10.0)).round() * 10.0,
-                    rnd_gen.gen_range(-WINDOW_HEIGHT/(2.0*10.0)..WINDOW_HEIGHT/(2.0*10.0)).round() * 10.0,
+                    rnd_gen
+                        .gen_range(-WINDOW_WIDTH / (2.0 * 10.0)..WINDOW_WIDTH / (2.0 * 10.0))
+                        .round()
+                        * 10.0,
+                    rnd_gen
+                        .gen_range(-WINDOW_HEIGHT / (2.0 * 10.0)..WINDOW_HEIGHT / (2.0 * 10.0))
+                        .round()
+                        * 10.0,
                     0.0,
                 ),
                 sprite: Sprite::new(Vec2::new(8.0, 8.0)),
@@ -192,16 +202,17 @@ fn mouse_generating_system(
 }
 
 fn snake_wall_collision_system(
-    snake_head_query:       Query<(&SnakeHead, &Transform)>,
-    mut snake_state_query:  Query<(&Snake, &mut LivingState)>
+    snake_head_query: Query<(&SnakeHead, &Transform)>,
+    mut snake_state_query: Query<(&Snake, &mut LivingState)>,
 ) {
     if let Ok((_snake, mut living_state)) = snake_state_query.single_mut() {
         if let Ok((_snake_head, head_trans)) = snake_head_query.single() {
-            if head_trans.translation.x >= WINDOW_WIDTH / 2.0 || 
-                head_trans.translation.x <= -WINDOW_WIDTH / 2.0 ||
-                head_trans.translation.y >= WINDOW_HEIGHT / 2.0 ||
-                head_trans.translation.y <= -WINDOW_HEIGHT / 2.0 {
-                    *living_state = LivingState::Dead;
+            if head_trans.translation.x >= WINDOW_WIDTH / 2.0
+                || head_trans.translation.x <= -WINDOW_WIDTH / 2.0
+                || head_trans.translation.y >= WINDOW_HEIGHT / 2.0
+                || head_trans.translation.y <= -WINDOW_HEIGHT / 2.0
+            {
+                *living_state = LivingState::Dead;
             }
         }
     }
@@ -298,8 +309,8 @@ fn game_input_listening_system(
 
 fn snek_movement_system(
     time: Res<Time>,
-    mut snake_query:    Query<(&mut Snake, &MoveDirection, &LivingState)>,
-    mut body_query:     Query<&mut Transform>,
+    mut snake_query: Query<(&mut Snake, &MoveDirection, &LivingState)>,
+    mut body_query: Query<&mut Transform>,
 ) {
     if let Ok((mut snake, direction, living_state)) = snake_query.single_mut() {
         // transform.translation.x += 1.0;
