@@ -123,30 +123,21 @@ fn load_cameras(mut commands: Commands) {
 fn load_snake(
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut meshs: ResMut<Assets<Mesh>>,
+    asset_server: Res<AssetServer>
 ) {
     let head_colour = materials.add(Color::rgba(0.45, 0.75, 0.45, 1.0).into());
     let body_colour = materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into());
 
-    commands.spawn_bundle(SpriteBundle {
-        material: materials.add(Color::RED.into()),
-        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-        sprite: Sprite::new(Vec2::new(20.0, 20.0)),
-        mesh: meshs.add(Mesh::new(shape::Torus {
-            radius: 30.0,
-            ring_radius: 10.0,
-            subdivisions_segments: 3,
-            subdivisions_sides: 2,
-        })),
-        ..Default::default()
-    });
+    let head_texture = materials.add(
+        asset_server.load("images/snake_head.png").into()
+    );
 
     let body = vec![
         commands
             .spawn_bundle(SpriteBundle {
-                material: head_colour.clone(),
-                transform: Transform::from_xyz(10.0, 0.0, 0.0),
-                sprite: Sprite::new(Vec2::new(10.0, 10.0)),
+                material: head_texture.clone(),
+                transform: Transform::from_xyz(10.0, 0.0, 1.0),
+                sprite: Sprite::new(Vec2::new(20.0, 20.0)),
                 ..Default::default()
             })
             .insert(SnakeHead {})
