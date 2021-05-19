@@ -4,6 +4,9 @@ use rand::prelude::*;
 
 const WINDOW_WIDTH: f32 = 400.0;
 const WINDOW_HEIGHT: f32 = 400.0;
+const BLOCK_SIZE: u32 = 10;
+const WINDOW_WIDTH_BLOCKS: i32 = WINDOW_WIDTH as i32/ BLOCK_SIZE as i32;
+const WINDOW_HEIGHT_BLOCKS: i32 = WINDOW_HEIGHT as i32/ BLOCK_SIZE as i32;
 
 #[derive(Clone, PartialEq, Eq)]
 enum MoveDirection {
@@ -179,19 +182,17 @@ fn load_snake(
 fn mouse_generating_system(mut commands: Commands, materials: Res<Materials>) {
     let mut rnd_gen = thread_rng();
 
-    if rnd_gen.gen_bool(0.005) {
+    if rnd_gen.gen_bool(0.8) {
         commands
             .spawn_bundle(SpriteBundle {
                 material: materials.mouse_material.clone(),
                 transform: Transform::from_xyz(
-                    rnd_gen
-                        .gen_range(-WINDOW_WIDTH / (2.0 * 10.0)..WINDOW_WIDTH / (2.0 * 10.0))
-                        .round()
-                        * 10.0,
-                    rnd_gen
-                        .gen_range(-WINDOW_HEIGHT / (2.0 * 10.0)..WINDOW_HEIGHT / (2.0 * 10.0))
-                        .round()
-                        * 10.0,
+                    (rnd_gen.gen_range(
+                        (-WINDOW_WIDTH_BLOCKS/2)+1..(WINDOW_WIDTH_BLOCKS/2)
+                    ) * (BLOCK_SIZE as i32)) as f32,
+                    (rnd_gen.gen_range(
+                        (-WINDOW_HEIGHT_BLOCKS/2)+1..(WINDOW_HEIGHT_BLOCKS/2)
+                    ) * (BLOCK_SIZE as i32)) as f32,
                     0.0,
                 ),
                 sprite: Sprite::new(Vec2::new(8.0, 8.0)),
@@ -356,16 +357,16 @@ fn snek_movement_system(
                 snake.current_direction = direction.clone();
                 match direction {
                     MoveDirection::Left => {
-                        head_trans.translation.x -= 10.0;
+                        head_trans.translation.x -= BLOCK_SIZE as f32;
                     }
                     MoveDirection::Right => {
-                        head_trans.translation.x += 10.0;
+                        head_trans.translation.x += BLOCK_SIZE as f32;
                     }
                     MoveDirection::Up => {
-                        head_trans.translation.y += 10.0;
+                        head_trans.translation.y += BLOCK_SIZE as f32;
                     }
                     MoveDirection::Down => {
-                        head_trans.translation.y -= 10.0;
+                        head_trans.translation.y -= BLOCK_SIZE;
                     }
                 }
             }
