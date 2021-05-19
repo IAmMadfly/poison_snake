@@ -5,11 +5,18 @@ use rand::prelude::*;
 const WINDOW_WIDTH: f32 = 400.0;
 const WINDOW_HEIGHT: f32 = 400.0;
 
+#[derive(Clone, PartialEq, Eq)]
 enum MoveDirection {
     Left,
     Right,
     Up,
     Down,
+}
+
+impl Default for MoveDirection {
+    fn default() -> Self {
+        MoveDirection::Right
+    }
 }
 
 struct Materials {
@@ -19,6 +26,7 @@ struct Materials {
 #[derive(Default)]
 struct Snake {
     body: Vec<Entity>,
+    current_direction: MoveDirection,
     head_colour: Handle<ColorMaterial>,
     body_colour: Handle<ColorMaterial>,
     last_move: f32,
@@ -123,21 +131,21 @@ fn load_cameras(mut commands: Commands) {
 fn load_snake(
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    asset_server: Res<AssetServer>
+    // asset_server: Res<AssetServer>
 ) {
     let head_colour = materials.add(Color::rgba(0.45, 0.75, 0.45, 1.0).into());
     let body_colour = materials.add(Color::rgba(0.4, 0.6, 0.4, 1.0).into());
 
-    let head_texture = materials.add(
-        asset_server.load("images/snake_head.png").into()
-    );
+    // let head_texture = materials.add(
+    //     asset_server.load("images/snake_head.png").into()
+    // );
 
     let body = vec![
         commands
             .spawn_bundle(SpriteBundle {
-                material: head_texture.clone(),
+                material: head_colour.clone(),
                 transform: Transform::from_xyz(10.0, 0.0, 1.0),
-                sprite: Sprite::new(Vec2::new(20.0, 20.0)),
+                sprite: Sprite::new(Vec2::new(10.0, 10.0)),
                 ..Default::default()
             })
             .insert(SnakeHead {})
@@ -156,6 +164,7 @@ fn load_snake(
     let snek = Snake {
         body,
         last_move: 0.0,
+        current_direction: MoveDirection::default(),
         head_colour,
         body_colour,
     };
@@ -283,17 +292,24 @@ fn snake_mouse_collision_system(
 
 fn game_input_listening_system(
     keycode: Res<Input<KeyCode>>,
+    snek_query: Query<&Snake>,
     mut direction_query: Query<&mut MoveDirection>,
 ) {
     if let Ok(mut direction) = direction_query.single_mut() {
-        if keycode.pressed(KeyCode::Left) {
-            *direction = MoveDirection::Left;
-        } else if keycode.pressed(KeyCode::Right) {
-            *direction = MoveDirection::Right;
-        } else if keycode.pressed(KeyCode::Up) {
-            *direction = MoveDirection::Up;
-        } else if keycode.pressed(KeyCode::Down) {
-            *direction = MoveDirection::Down;
+        if let Ok(snek) = snek_query.single() {
+            if keycode.pressed(KeyCode::Left) && snek.current_direction != MoveDirection::Right {
+                *direction = MoveDirection::Left;
+            } else if keycode.pressed(KeyCode::Right)
+                && snek.current_direction != MoveDirection::Left
+            {
+                *direction = MoveDirection::Right;
+            } else if keycode.pressed(KeyCode::Up) && snek.current_direction != MoveDirection::Down
+            {
+                *direction = MoveDirection::Up;
+            } else if keycode.pressed(KeyCode::Down) && snek.current_direction != MoveDirection::Up
+            {
+                *direction = MoveDirection::Down;
+            }
         }
     }
 }
@@ -337,6 +353,7 @@ fn snek_movement_system(
             }
 
             if let Ok(mut head_trans) = body_query.get_mut(snake_head) {
+                snake.current_direction = direction.clone();
                 match direction {
                     MoveDirection::Left => {
                         head_trans.translation.x -= 10.0;
