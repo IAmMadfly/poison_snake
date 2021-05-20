@@ -55,11 +55,17 @@ struct Wall {}
 fn main() {
     let mut app = App::build();
 
+    app.insert_resource(WindowDescriptor {
+        title:  "Poison Snake!".to_string(),
+        width:  WINDOW_WIDTH,
+        height: WINDOW_HEIGHT,
+        ..Default::default()
+    });
+
     app.add_plugins(DefaultPlugins);
 
     app.add_startup_system(load_cameras.system())
         .add_startup_system(load_snake.system())
-        .add_startup_system(set_window_parameters.system())
         .add_startup_system(make_walls.system())
         .add_startup_system(make_mouse_resources.system());
 
@@ -70,15 +76,6 @@ fn main() {
         .add_system(snake_wall_collision_system.system());
 
     app.run();
-}
-
-fn set_window_parameters(mut windows: ResMut<Windows>) {
-    if let Some(window) = windows.get_primary_mut() {
-        window.set_resolution(WINDOW_WIDTH, WINDOW_HEIGHT);
-        window.set_resizable(false);
-    } else {
-        println!("Failed to configure window!");
-    }
 }
 
 fn make_walls(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
@@ -366,7 +363,7 @@ fn snek_movement_system(
                         head_trans.translation.y += BLOCK_SIZE as f32;
                     }
                     MoveDirection::Down => {
-                        head_trans.translation.y -= BLOCK_SIZE;
+                        head_trans.translation.y -= BLOCK_SIZE as f32;
                     }
                 }
             }
