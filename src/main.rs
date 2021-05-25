@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 
 use rand::prelude::*;
@@ -22,6 +24,16 @@ impl Default for MoveDirection {
     }
 }
 
+struct Position {
+    x:      i32,
+    y:      i32
+}
+
+struct PositionCouple {
+    next_pos:   Position,
+    prev_pos:   Position,
+}
+
 struct Materials {
     mouse_material: Handle<ColorMaterial>,
 }
@@ -31,8 +43,7 @@ struct Snake {
     body: Vec<Entity>,
     current_direction: MoveDirection,
     head_colour: Handle<ColorMaterial>,
-    body_colour: Handle<ColorMaterial>,
-    last_move: f32,
+    body_colour: Handle<ColorMaterial>
 }
 
 enum LivingState {
@@ -62,14 +73,20 @@ fn main() {
         ..Default::default()
     });
 
+    app.insert_resource(
+            Timer::from_seconds(0.5, true)
+        );
+
     app.add_plugins(DefaultPlugins);
 
-    app.add_startup_system(load_cameras.system())
+    app
+        .add_startup_system(load_cameras.system())
         .add_startup_system(load_snake.system())
         .add_startup_system(make_walls.system())
         .add_startup_system(make_mouse_resources.system());
 
-    app.add_system(snek_movement_system.system())
+    app
+        .add_system(snek_movement_system.system())
         .add_system(game_input_listening_system.system())
         .add_system(mouse_generating_system.system())
         .add_system(snake_mouse_collision_system.system())
@@ -163,7 +180,6 @@ fn load_snake(
 
     let snek = Snake {
         body,
-        last_move: 0.0,
         current_direction: MoveDirection::default(),
         head_colour,
         body_colour,
@@ -176,10 +192,14 @@ fn load_snake(
         .insert(MoveDirection::Right);
 }
 
-fn mouse_generating_system(mut commands: Commands, materials: Res<Materials>) {
+fn mouse_generating_system(
+    mut commands: Commands, 
+    materials: Res<Materials>,
+    mouse_query: Query<&Mouse>
+) {
     let mut rnd_gen = thread_rng();
 
-    if rnd_gen.gen_bool(0.8) {
+    if mouse_query.iter().len() < 1 {
         commands
             .spawn_bundle(SpriteBundle {
                 material: materials.mouse_material.clone(),
@@ -316,6 +336,7 @@ fn snek_movement_system(
     time: Res<Time>,
     mut snake_query: Query<(&mut Snake, &MoveDirection, &LivingState)>,
     mut body_query: Query<&mut Transform>,
+    move_timer: Res<Timer>
 ) {
     if let Ok((mut snake, direction, living_state)) = snake_query.single_mut() {
         // transform.translation.x += 1.0;
@@ -324,10 +345,11 @@ fn snek_movement_system(
             return;
         }
 
-        snake.last_move += time.delta_seconds();
+        // snake.last_move += time.delta_seconds();
+        println!("Time on timer: {}, Paused? {}", move_timer.percent(), move_timer.paused());
 
-        if snake.last_move >= 0.05 {
-            snake.last_move = 0.0;
+        if move_timer.finished() {
+            // snake.last_move = 0.0;
 
             let snake_head = snake.body.first().unwrap().clone();
             let snake_tail = snake.body.last().unwrap().clone();
